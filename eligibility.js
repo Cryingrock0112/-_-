@@ -1,0 +1,14 @@
+export const START='2026-11-02', END='2026-11-29';
+export const stores={central:'센트럴점',park:'파크점',river:'리버점'};
+export const benefits={
+ combo:{title:'월~목 식사 콤보 15% 할인',eyebrow:'MON — THU / MEAL COMBO',conditions:['월~목 11:30~13:30 또는 17:30~19:30에 진행합니다.','행사 간편식 1개와 음료 또는 유제품 1개를 함께 구매해야 합니다.','동일 영수증 동시 구매 시 적용됩니다.','타 쿠폰·기존 수량 할인과 중복 불가합니다.','행사 표시 상품에 한해 적용됩니다.']},
+ weekend:{title:'주말 2,000원 즉시 할인',eyebrow:'FRI — SUN / WEEKEND DEAL',conditions:['금~일에 진행합니다.','다른 상품 할인 적용 후, 즉시할인 전 금액이 35,000원 이상이어야 합니다.','단일 영수증 기준이며 영수증 합산은 불가합니다.','자세한 대상 상품과 적용 조건은 매장에서 확인해 주세요.']},
+ together:{title:'함께 사면 가공식품 15% 할인',eyebrow:'EVERY DAY / BETTER TOGETHER',conditions:['행사 기간 동안 매일 진행합니다.','행사 신선식품 10,000원 이상 구매 시 적용됩니다.','지정 즉석밥·참치·멸치가 대상이며 최대 2개입니다.','대상 상품과 수량 제한 적용 단위는 매장에서 확인해 주세요.']},
+ river:{title:'리버점 퇴근길 20% 할인',eyebrow:'ONLY RIVER / AFTER WORK',conditions:['리버점에서만 진행합니다.','매일 17:00~20:00에 진행합니다.','당일 행사 신선식품·간편식이 대상입니다.','준비 수량 소진 시 조기 종료될 수 있습니다.']}
+};
+export function validDate(value){if(!/^2026-11-\d{2}$/.test(value||''))return false;return value>=START&&value<=END;}
+export function koreaToday(now=new Date()){return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(now);}
+export function weekday(date){return new Date(date+'T12:00:00+09:00').getUTCDay();}
+export function timeMinutes(time){if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(time||''))return null;const [h,m]=time.split(':').map(Number);return h*60+m;}
+export function eligibility(id,{store,date,time}){if(!validDate(date))return {match:false,text:'행사 기간을 선택해 주세요'};if(!stores[store])return {match:false,text:'매장을 선택해 주세요'};const day=weekday(date),t=timeMinutes(time);if(id==='combo'){if(day===0||day>=5)return {match:false,text:'월~목에 만나요'};if(t===null)return {match:false,text:'시간 선택 필요'};const match=(t>=690&&t<810)||(t>=1050&&t<1170);return {match,text:match?'방문 시간에 해당 · 상품 조건 확인':'식사 콤보 시간 외'};}if(id==='weekend'){const match=day===0||day>=5;return {match,text:match?'주말 혜택 · 35,000원 기준 확인':'금~일 주말 혜택'};}if(id==='together')return {match:true,text:'매일 진행 · 상품·금액 조건 확인'};if(store!=='river')return {match:false,text:'리버점 전용 혜택'};if(t===null)return {match:false,text:'시간 선택 필요'};return {match:t>=1020&&t<1200,text:t>=1020&&t<1200?'방문 시간에 해당 · 수량 확인':'퇴근길 혜택 시간 외'};}
+export function thresholdResult(type,value){const threshold=type==='weekend'?35000:10000;if(!/^\d{1,7}$/.test(String(value)))return {valid:false,ratio:0,text:'0~9,999,999원의 숫자를 입력해 주세요.'};const amount=Number(value),met=amount>=threshold;return {valid:true,met,ratio:Math.min(amount/threshold,1),text:met?(type==='weekend'?'주말 할인 금액 기준 충족! 2,000원 즉시 할인 대상 금액이에요.':'신선식품 금액 기준 충족! 지정 가공식품 할인 조건을 확인해 주세요.'):`${(threshold-amount).toLocaleString('ko-KR')}원 더 구매하면 ${type==='weekend'?'주말 할인':'함께 구매'} 금액 기준에 도달해요.`};}
